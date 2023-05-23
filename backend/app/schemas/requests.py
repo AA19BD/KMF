@@ -17,3 +17,7 @@ class UserUpdatePasswordRequest(BaseRequest):
 class UserCreateRequest(BaseRequest):
     email: EmailStr
     password: str
+
+
+class BankStatementRequest(BaseRequest):
+    base64_bank_statement: str

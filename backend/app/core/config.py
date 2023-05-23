@@ -40,9 +40,9 @@ class Settings(BaseSettings):
     ALLOWED_HOSTS: list[str] = ["localhost", "127.0.0.1"]
 
     # PROJECT NAME, VERSION AND DESCRIPTION
-    PROJECT_NAME: str = "autoexpress"
+    PROJECT_NAME: str = "KMF"
     VERSION: str = "0.1.0-alpha"
-    DESCRIPTION: str = "AutoExpress - convenient app for car rentals."
+    DESCRIPTION: str = "KMF TestProject"
 
     # POSTGRESQL DEFAULT DATABASE
     DEFAULT_DATABASE_HOSTNAME: str

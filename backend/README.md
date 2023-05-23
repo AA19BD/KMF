@@ -3,7 +3,7 @@
 ### 1. Clone project
 
 ```bash
-git clone https://gitlab.com/minivenexpress/backend.git
+git clone https://github.com/AA19BD/KMF.git
 
 ```
 

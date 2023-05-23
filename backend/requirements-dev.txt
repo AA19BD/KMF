@@ -61,3 +61,5 @@ uvloop==0.17.0 ; sys_platform != "win32" and sys_platform != "cygwin" and platfo
 virtualenv==20.17.1 ;
 watchfiles==0.18.1 ;
 websockets==10.4 ;
+pdfplumber;
+hashlib;

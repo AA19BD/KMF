@@ -3,7 +3,7 @@
 data
 default_database_data
 test_database_data
-
+pdf_files/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
