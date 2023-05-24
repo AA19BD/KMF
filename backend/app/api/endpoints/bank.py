@@ -6,13 +6,14 @@ import uuid
 import pdfplumber
 from fastapi import APIRouter, Depends, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.api import deps
 from app.models import BankStatement, User
 from app.schemas.responses import (
     BankProcessResponse,
     ErrorResponse,
-    ProcessBankStatementResponse,
+    ProcessBankStatementResponse
 )
 
 router = APIRouter()
@@ -24,9 +25,9 @@ router = APIRouter()
     status_code=201,
 )
 async def create_new_process_bank_statement(
-    bank_statement: UploadFile = File(...),
-    session: AsyncSession = Depends(deps.get_session),
-    current_user: User = Depends(deps.get_current_user),
+        bank_statement: UploadFile = File(...),
+        session: AsyncSession = Depends(deps.get_session),
+        current_user: User = Depends(deps.get_current_user),
 ) -> ProcessBankStatementResponse:
     """
         Processes a bank statement and saves it to the database.
@@ -41,10 +42,10 @@ async def create_new_process_bank_statement(
 
         # Decode the Base64-encoded bank statement
         encoded_data = base64.b64encode(contents).decode("utf-8")
-        contents = base64.b64decode(encoded_data)
+        decoded_data = base64.b64decode(encoded_data)
 
         # Extract text from the PDF file
-        text, filename_path = extract_text_from_pdf(contents)
+        text, filename_path = extract_text_from_pdf(decoded_data)
 
         document = get_customer_transaction_information(text)
 
@@ -81,7 +82,29 @@ async def create_new_process_bank_statement(
             message="Error processing bank statement", details=str(e)
         )
         return ProcessBankStatementResponse(error=error_response)
-        # TODO: check for IntegrityError if true: then .pdf exists in DB, need to select it
+        # TODO: check for IntegrityError if true: then .pdf exists in DB
+        #  (IntegrityError happens when hash file repeats), need to select it
+
+
+@router.get("/get_bank_statements", status_code=200)
+async def get_all_my_bank_statements(
+        session: AsyncSession = Depends(deps.get_session),
+        current_user: User = Depends(deps.get_current_user),
+):
+    """Get list of all bank statements  for currently logged user.
+    :rtype: object
+    :param session: The database session
+    :param current_user: The currently authenticated user
+    :return: A list of bank statements
+    """
+
+    stmt = (
+        select(BankStatement)
+        .where(BankStatement.user_id == current_user.id)
+        .order_by(BankStatement.contract_number)
+    )
+    bank_statements = await session.execute(stmt)
+    return bank_statements.scalars().all()
 
 
 def get_customer_transaction_information(text: str) -> dict:
@@ -104,7 +127,7 @@ def get_customer_transaction_information(text: str) -> dict:
         "Период": lines[8][9:None],
         "Дата формирования выписки": lines[0][47:None],
         "Клиент": lines[1][29:None],
-        "Транзакция": text[text.find("Транзакции Движение по счету") : None],
+        "Транзакция": text[text.find("Транзакции Движение по счету"): None],
     }
 
     return parameters
@@ -142,7 +165,8 @@ def extract_text_from_pdf(decoded_data: bytes) -> tuple[str, str]:
 
 def calculate_file_hash(file_path, algorithm="sha256") -> str:
     """
-        Calculate the hash value of a file using the specified algorithm
+        Calculate the hash value of a file using the specified algorithm,
+        The Purpose of hashing is rid of repeated files(pdf)
     :param file_path: The path to the file
     :param algorithm: The hash algorithm to use. Defaults to "sha256"
     :return: str: The calculated hash value as a hexadecimal string.
