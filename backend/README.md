@@ -11,7 +11,7 @@ git clone https://github.com/AA19BD/KMF.git
 
 ```bash
 ### 1. CD to root
-cd backend
+cd KMF/backend
 
 ### 2. Create virtual environment for python
 python3 -m venv venv
