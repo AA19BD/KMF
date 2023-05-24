@@ -4,13 +4,15 @@ data
 default_database_data
 test_database_data
 pdf_files/
-.DS_Store
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
 .env
+
 .idea
+.DS_Store
 
 # C extensions
 *.so
