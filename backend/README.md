@@ -111,3 +111,4 @@ alembic upgrade head
 PS. Note, alembic is configured in a way that it work with async setup and also detects specific column changes.
 
 
+ -

@@ -35,7 +35,7 @@ class BankProcessResponse(BaseModel):
 
 class ErrorResponse(BaseModel):
     message: str
-    details: str
+    details: str = None
 
 
 class ProcessBankStatementResponse(BaseModel):

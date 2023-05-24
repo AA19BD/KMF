@@ -5,15 +5,15 @@ import uuid
 
 import pdfplumber
 from fastapi import APIRouter, Depends, File, UploadFile
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
 from app.models import BankStatement, User
 from app.schemas.responses import (
     BankProcessResponse,
     ErrorResponse,
-    ProcessBankStatementResponse
+    ProcessBankStatementResponse,
 )
 
 router = APIRouter()
@@ -25,9 +25,9 @@ router = APIRouter()
     status_code=201,
 )
 async def create_new_process_bank_statement(
-        bank_statement: UploadFile = File(...),
-        session: AsyncSession = Depends(deps.get_session),
-        current_user: User = Depends(deps.get_current_user),
+    bank_statement: UploadFile = File(...),
+    session: AsyncSession = Depends(deps.get_session),
+    current_user: User = Depends(deps.get_current_user),
 ) -> ProcessBankStatementResponse:
     """
         Processes a bank statement and saves it to the database.
@@ -47,11 +47,27 @@ async def create_new_process_bank_statement(
         # Extract text from the PDF file
         text, filename_path = extract_text_from_pdf(decoded_data)
 
+        # Get all parameters from the PDF file
         document = get_customer_transaction_information(text)
+
+        # Check if the hashed filename already exists in the database
+        hashed_filename = calculate_file_hash(filename_path)
+        stmt = select(BankStatement).where(
+            BankStatement.base64_bank_statement == hashed_filename
+        )
+        result = await session.execute(stmt)
+        existing_bank_statement = result.scalars().all()
+
+        if existing_bank_statement:
+            os.remove(filename_path)
+            error_response = ErrorResponse(
+                message="Bank statement with the same filename already exists in Database"
+            )
+            return ProcessBankStatementResponse(error=error_response)
 
         new_bank_statement = BankStatement(
             user_id=current_user.id,
-            base64_bank_statement=filename_path,
+            base64_bank_statement=hashed_filename,
             contract_number=document["Номер контракта"],
             account_number=document["Номер счета"],
             card=document["Карта"],
@@ -82,17 +98,16 @@ async def create_new_process_bank_statement(
             message="Error processing bank statement", details=str(e)
         )
         return ProcessBankStatementResponse(error=error_response)
-        # TODO: check for IntegrityError if true: then .pdf exists in DB
-        #  (IntegrityError happens when hash file repeats), need to select it
 
 
 @router.get("/get_bank_statements", status_code=200)
 async def get_all_my_bank_statements(
-        session: AsyncSession = Depends(deps.get_session),
-        current_user: User = Depends(deps.get_current_user),
+    session: AsyncSession = Depends(deps.get_session),
+    current_user: User = Depends(deps.get_current_user),
 ):
     """Get list of all bank statements  for currently logged user.
     :rtype: object
+    :param session: The database session
     :param session: The database session
     :param current_user: The currently authenticated user
     :return: A list of bank statements

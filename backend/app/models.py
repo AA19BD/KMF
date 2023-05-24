@@ -54,3 +54,6 @@ class BankStatement(Base):
     client_name: Mapped[str] = mapped_column(Text, nullable=True)
     transaction: Mapped[str] = mapped_column(Text, nullable=True)
     base64_bank_statement: Mapped[str] = mapped_column(unique=True, nullable=False)
+
+    def __str__(self):
+        return f"BankStatement(id={self.id}, base64_bank_statement={self.base64_bank_statement}, contract_number={self.contract_number}, ...)"
