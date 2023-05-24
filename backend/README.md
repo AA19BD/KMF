@@ -110,5 +110,20 @@ alembic upgrade head
 
 PS. Note, alembic is configured in a way that it work with async setup and also detects specific column changes.
 
+## Screenshots
 
- -
+<div>
+  <img style="width: 100%" src="screenshots/1.png" />
+</div>
+
+<div>
+  <img style="width: 100%" src="screenshots/2.png" />
+</div>
+
+<div>
+  <img style="width: 100%" src="screenshots/3.png" />
+</div>
+
+<div>
+  <img style="width: 100%" src="screenshots/4.png" />
+</div>
