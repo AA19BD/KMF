@@ -23,4 +23,21 @@ class UserResponse(BaseResponse):
 
 
 class BankProcessResponse(BaseModel):
+    contract_number: str
+    account_number: str
+    card: str
+    branch_of_the_bank: str
+    main_currency: str
+    period: str
+    client_name: str
+    transaction: str
+
+
+class ErrorResponse(BaseModel):
     message: str
+    details: str
+
+
+class ProcessBankStatementResponse(BaseModel):
+    success: BankProcessResponse = None
+    error: ErrorResponse = None

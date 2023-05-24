@@ -15,7 +15,7 @@ alembic upgrade head
 """
 import uuid
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -45,4 +45,12 @@ class BankStatement(Base):
     user_id: Mapped[str] = mapped_column(
         ForeignKey("user_model.id", ondelete="CASCADE"),
     )
+    contract_number: Mapped[str] = mapped_column(Text, nullable=True)
+    account_number: Mapped[str] = mapped_column(Text, nullable=True)
+    card: Mapped[str] = mapped_column(Text, nullable=True)
+    branch_of_the_bank: Mapped[str] = mapped_column(Text, nullable=True)
+    main_currency: Mapped[str] = mapped_column(Text, nullable=True)
+    period: Mapped[str] = mapped_column(Text, nullable=True)
+    client_name: Mapped[str] = mapped_column(Text, nullable=True)
+    transaction: Mapped[str] = mapped_column(Text, nullable=True)
     base64_bank_statement: Mapped[str] = mapped_column(unique=True, nullable=False)

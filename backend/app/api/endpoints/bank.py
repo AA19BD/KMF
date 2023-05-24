@@ -1,28 +1,35 @@
+import base64
+import hashlib
 import os
 import uuid
-import hashlib
-import base64
-from typing import Tuple
 
 import pdfplumber
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api import deps
 from app.models import BankStatement, User
-from app.schemas.responses import BankProcessResponse
-
+from app.schemas.responses import (
+    BankProcessResponse,
+    ErrorResponse,
+    ProcessBankStatementResponse,
+)
 
 router = APIRouter()
 
 
-@router.post("/process_bank_statement", response_model=BankProcessResponse, status_code=201)
+@router.post(
+    "/process_bank_statement",
+    response_model=ProcessBankStatementResponse,
+    status_code=201,
+)
 async def create_new_process_bank_statement(
-        bank_statement: UploadFile = File(...),
-        session: AsyncSession = Depends(deps.get_session),
-        current_user: User = Depends(deps.get_current_user),
-):
-    """Processes a bank statement and saves it to the database.
+    bank_statement: UploadFile = File(...),
+    session: AsyncSession = Depends(deps.get_session),
+    current_user: User = Depends(deps.get_current_user),
+) -> ProcessBankStatementResponse:
+    """
+        Processes a bank statement and saves it to the database.
     :param bank_statement: The uploaded bank statement file
     :param session: The database session
     :param current_user: The currently authenticated user
@@ -37,22 +44,73 @@ async def create_new_process_bank_statement(
         contents = base64.b64decode(encoded_data)
 
         # Extract text from the PDF file
-        text, filename = extract_text_from_pdf(contents)
+        text, filename_path = extract_text_from_pdf(contents)
+
+        document = get_customer_transaction_information(text)
 
         new_bank_statement = BankStatement(
             user_id=current_user.id,
-            base64_bank_statement=calculate_file_hash(filename),
+            base64_bank_statement=filename_path,
+            contract_number=document["Номер контракта"],
+            account_number=document["Номер счета"],
+            card=document["Карта"],
+            branch_of_the_bank=document["Отделение Банка"],
+            main_currency=document["Основная валюта контракта"],
+            period=document["Дата формирования выписки"],
+            client_name=document["Клиент"],
+            transaction=document["Транзакция"],
         )
 
         session.add(new_bank_statement)
         await session.commit()
-        return BankProcessResponse(message=text)
+
+        success_response = BankProcessResponse(
+            contract_number=document["Номер контракта"],
+            account_number=document["Номер счета"],
+            card=document["Карта"],
+            branch_of_the_bank=document["Отделение Банка"],
+            main_currency=document["Основная валюта контракта"],
+            period=document["Дата формирования выписки"],
+            client_name=document["Клиент"],
+            transaction=document["Транзакция"],
+        )
+        return ProcessBankStatementResponse(success=success_response)
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Error processing bank statement") from e
+        error_response = ErrorResponse(
+            message="Error processing bank statement", details=str(e)
+        )
+        return ProcessBankStatementResponse(error=error_response)
+        # TODO: check for IntegrityError if true: then .pdf exists in DB, need to select it
 
 
-def extract_text_from_pdf(decoded_data: bytes) -> Tuple[str, str]:
+def get_customer_transaction_information(text: str) -> dict:
+    """
+        Get Contract number, Account number, Card,
+        Branch of the Bank, Main currency of the contract,
+        Period, date of the statement, client name, transaction data
+    :param text: Text from parsed pdf
+    :rtype: object
+    """
+
+    lines = text.split("\n")
+
+    parameters = {
+        "Номер контракта": lines[2][16:None],
+        "Номер счета": lines[3][12:None],
+        "Карта": lines[4][6:None],
+        "Отделение Банка": lines[5][16:None],
+        "Основная валюта контракта": lines[7][26:None],
+        "Период": lines[8][9:None],
+        "Дата формирования выписки": lines[0][47:None],
+        "Клиент": lines[1][29:None],
+        "Транзакция": text[text.find("Транзакции Движение по счету") : None],
+    }
+
+    return parameters
+
+
+def extract_text_from_pdf(decoded_data: bytes) -> tuple[str, str]:
     """
          Extracts text from a PDF file given its decoded data
     :param decoded_data(bytes) The decoded data of the PDF file
